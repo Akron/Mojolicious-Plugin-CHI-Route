@@ -26,14 +26,25 @@ get('/cool')->requires('chi' => { key => sub { 'abc' } })->to(
       text => 'works: cool',
       format => 'txt'
     );
-  });
+  }
+);
+
+get('/foo')->requires('chi')->to(
+  cb => sub {
+    return shift->render(
+      status => 404,
+      text => 'works: not',
+      format => 'txt'
+    );
+  }
+);
 
 $t->get_ok('/cool')
   ->status_is(200)
   ->content_type_is('text/plain;charset=UTF-8')
   ->content_is('works: cool')
   ->header_is('X-Funny','hi')
-  ->header_is('X-FromCache',undef)
+  ->header_is('X-From-Cache', undef)
   ;
 
 $t->get_ok('/cool')
@@ -41,7 +52,7 @@ $t->get_ok('/cool')
   ->content_type_is('text/plain;charset=UTF-8')
   ->content_is('works: cool')
   ->header_is('X-Funny','hi')
-  ->header_is('X-FromCache','1')
+  ->header_is('X-From-Cache','1')
   ;
 
 $t->get_ok('/cool')
@@ -49,7 +60,21 @@ $t->get_ok('/cool')
   ->content_type_is('text/plain;charset=UTF-8')
   ->content_is('works: cool')
   ->header_is('X-Funny','hi')
-  ->header_is('X-FromCache','1')
+  ->header_is('X-From-Cache','1')
+  ;
+
+$t->get_ok('/foo')
+  ->status_is(404)
+  ->content_type_is('text/plain;charset=UTF-8')
+  ->content_is('works: not')
+  ->header_is('X-From-Cache',undef)
+  ;
+
+$t->get_ok('/foo')
+  ->status_is(404)
+  ->content_type_is('text/plain;charset=UTF-8')
+  ->content_is('works: not')
+  ->header_is('X-From-Cache',undef)
   ;
 
 done_testing;
