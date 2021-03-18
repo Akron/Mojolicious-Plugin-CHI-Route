@@ -125,4 +125,29 @@ ok($diff > 180, 'Key will expire in <= 3 hours');
 ok($diff > 2 * 60 * 60, 'Key will expire in <= 3 hours');
 ok($diff <= 3 * 60 * 60, 'Key will expire in <= 3 hours');
 
+
+get('/ownkey')->requires('chi' => {
+  key => sub {
+    return shift->req->headers->header('random') // '000'
+  }
+})->to(
+  cb => sub {
+    my $c = shift;
+    my $random = $c->req->headers->header('random') // '111';
+    return $c->render(
+      text => 'Has the name "'.$random.'"',
+      format => 'txt'
+    );
+  }
+);
+
+$t->get_ok('/ownkey' => { random => 'okay'})
+  ->status_is(200)
+  ->text_is('#error','')
+  ->content_is('Has the name "okay"')
+  ;
+
+my $value = $c->chi('xyz')->get('okay')->{body};
+is($value, 'Has the name "okay"');
+
 done_testing;
