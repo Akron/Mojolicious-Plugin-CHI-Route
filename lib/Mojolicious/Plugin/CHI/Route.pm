@@ -1,24 +1,41 @@
 package Mojolicious::Plugin::CHI::Route;
 use Mojo::Base 'Mojolicious::Plugin';
 
-our $VERSION = 0.01;
+our $VERSION = "0.01";
 
+# Register plugin
 sub register {
   my ($plugin, $app, $param) = @_;
 
-  my $namespace = $param->{namespace} // 'default';
+  # Plugin parameter
+  $param ||= {};
+
+  # Load parameter from Config file
+  if (my $config_param = $app->config('CHI-Route')) {
+    $param = { %$param, %$config_param };
+  };
+
+  # Load CHI plugin if not already loaded
+  unless (exists $app->renderer->helpers->{chi}) {
+    $app->plugin('CHI');
+  };
+
+  # set namespace
+  my $namespace = $param->{namespace}   // 'default';
+  my $expires_in = $param->{expires_in} // '6 hour';
 
   # Set default key
   my $default_key = $param->{key} // sub {
     return shift->req->url->to_abs->to_string;
   };
 
+  # Cache if required
   $app->hook(
     after_render => sub {
       my ($c, $output, $format) = @_;
 
       # No cache instruction found
-      return unless $c->stash('chi.cache');
+      return unless $c->stash('chi.r.cache');
 
       # Only cache successfull renderings
       if ($c->res->is_error || ($c->stash('status') && $c->stash('status') != 200)) {
@@ -26,7 +43,7 @@ sub register {
       };
 
       # Get key from stash
-      my $key = $c->stash('chi.cache');
+      my $key = $c->stash('chi.r.cache');
 
       # Cache
       $c->chi($namespace)->set(
@@ -34,6 +51,8 @@ sub register {
           body    => $$output,
           format  => $format,
           headers => $c->res->headers->to_hash(1)
+        } => {
+          expires_in => $c->stash('chi.r.expires') // $expires_in
         }
       );
     }
@@ -72,7 +91,7 @@ sub register {
 
         for ($c->res) {
           $_->headers->from_hash($found->{headers});
-          $_->headers->header('X-From-Cache' => 1);
+          $_->headers->header('X-Cache-CHI' => 1);
           $_->code(200);
         };
 
@@ -85,7 +104,12 @@ sub register {
 
       # Render normally and then cache the route
       else {
-        $c->stash('chi.cache' => $key);
+
+        if (exists $arg->{expires_in}) {
+          $c->stash('chi.r.expires' => $arg->{expires_in});
+        };
+
+        $c->stash('chi.r.cache' => $key);
       };
 
       return 1;
@@ -100,19 +124,121 @@ __END__
 
 =pod
 
+=encoding utf8
+
+=head1 NAME
+
+Mojolicious::Plugin::CHI::Route - Cache renderings based on routes
+
 =head1 SYNOPSIS
 
+  # Mojolicious
+  $app->plugin('CHI::Route');
+  $app->routes->get('/foo')->requires('chi')->to(
+    cb => sub {
+      shift->render(
+        text => 'This will be served from cache next time!'
+      );
+    }
+  )
 
+  # Mojolicious::Lite
   use Mojolicious::Lite;
 
   plugin 'CHI::Route';
 
-  get '/foo' => chi => sub {
-    shift->render(text => 'This will be cached next time!');
+  get '/foo' => (chi => { expires_in => '5 hours' }) => sub {
+    shift->render(
+      text => 'This will be served from cache next time!'
+    );
   }
 
-=head1 Description
+=head1 DESCRIPTION
 
-In case the key is found in the cache, the cache will be returned.
+L<Mojolicious::Plugin::CHI::Route> enables caching on the router level
+by using L<Mojolicious::Plugin::CHI>.
 
-The document will only be cached if it was a successful (200) GET request.
+=head1 METHODS
+
+=head2 register
+
+Called when registering the plugin.
+
+The registration accepts the following parameters:
+
+=over 2
+
+=item key
+
+The default key callback for all routes.
+Defaults to the absolute URL of the request.
+
+=item namespace
+
+Define the L<CHI> namespace for the cached renderings.
+Defaults to C<default>.
+It is beneficial to use a separate namespace to easily
+L<purge|Mojolicious::Plugin::CHI/chi purge> or
+L<clear|Mojolicious::Plugin::CHI/chi clear>
+just the route cache on updates.
+
+=item expires_in
+
+The default lifetime of route cache entries.
+Can be either a number of seconds or a
+L<duration expression|CHI/DURATION EXPRESSIONS>.
+Defaults to C<6 hours>.
+
+=back
+
+All parameters can be set as part of the configuration
+file with the key C<CHI-Route> or on registration
+(that can be overwritten by configuration).
+
+
+=head1 CONDITIONS
+
+=head2 chi
+
+The caching works by adding a condition to the route,
+that will either render from cache or cache a dynamic rendering.
+The condition will always succeed.
+Only successfull C<GET> requests will be cached.
+
+=over 2
+
+=item key
+
+The key for the cache.
+Accepts either a callback to dynamically define the key or
+a string (e.g. for non-dynamic routes without placeholders).
+This overrides the default C<key> configuration value.
+
+In case the key is found in the cache, the cache content will be returned.
+
+=item expires_in
+
+The lifetime of the route cache entry.
+Can be either a number of seconds or a
+L<duration expression|CHI/DURATION EXPRESSIONS>.
+This overrides the default C<expires_in> configuration value.
+
+=back
+
+=head1 TROUBLESHOOTING
+
+The cached results will contain a C<X-Cache-CHI> header.
+
+=head1 AVAILABILITY
+
+  https://github.com/Akron/Mojolicious-Plugin-CHI-Route
+
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2021, L<Nils Diewald|https://www.nils-diewald.de/>.
+
+This program is free software, you can redistribute it
+and/or modify it under the terms of the Artistic License version 2.0.
+
+=cut

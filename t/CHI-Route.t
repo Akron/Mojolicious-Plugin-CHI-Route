@@ -16,7 +16,8 @@ $app->plugin('CHI' => {
 });
 
 $app->plugin('CHI::Route' => {
-  namespace => 'xyz'
+  namespace => 'xyz',
+  expires_in => '3 hours'
 });
 
 my $call = 1;
@@ -41,52 +42,87 @@ get('/cool')->to(
   }
 );
 
-get('/foo')->requires('chi')->to(
+get '/foo' => ('chi' => {}) => sub {
+  return shift->render(
+    status => 404,
+    text => 'works: not',
+    format => 'txt'
+  );
+};
+
+
+$t->get_ok('/cool')
+  ->status_is(200)
+  ->content_type_is('text/plain;charset=UTF-8')
+  ->content_is('works: cool: 1')
+  ->header_is('X-Funny','hi')
+  ->header_is('X-Cache-CHI', undef)
+  ;
+
+$t->get_ok('/cool')
+  ->status_is(200)
+  ->content_type_is('text/plain;charset=UTF-8')
+  ->content_is('works: cool: 1')
+  ->header_is('X-Funny','hi')
+  ->header_is('X-Cache-CHI','1')
+  ;
+
+$t->get_ok('/cool')
+  ->status_is(200)
+  ->content_type_is('text/plain;charset=UTF-8')
+  ->content_is('works: cool: 1')
+  ->header_is('X-Funny','hi')
+  ->header_is('X-Cache-CHI','1')
+  ;
+
+$t->get_ok('/foo')
+  ->status_is(404)
+  ->content_type_is('text/plain;charset=UTF-8')
+  ->content_is('works: not')
+  ->header_is('X-Cache-CHI',undef)
+  ;
+
+$t->get_ok('/foo')
+  ->status_is(404)
+  ->content_type_is('text/plain;charset=UTF-8')
+  ->content_is('works: not')
+  ->header_is('X-Cache-CHI',undef)
+  ;
+
+
+get('/bar')->requires('chi' => { key => 'bar', expires_in => '3 min'})->to(
   cb => sub {
     return shift->render(
-      status => 404,
-      text => 'works: not',
+      text => 'Should expire after 3 minutes',
       format => 'txt'
     );
   }
 );
 
-$t->get_ok('/cool')
+$t->get_ok('/bar')
   ->status_is(200)
   ->content_type_is('text/plain;charset=UTF-8')
-  ->content_is('works: cool: 1')
-  ->header_is('X-Funny','hi')
-  ->header_is('X-From-Cache', undef)
+  ->content_is('Should expire after 3 minutes')
+  ->header_is('X-Cache-CHI',undef)
   ;
 
-$t->get_ok('/cool')
+
+$t->get_ok('/bar')
   ->status_is(200)
   ->content_type_is('text/plain;charset=UTF-8')
-  ->content_is('works: cool: 1')
-  ->header_is('X-Funny','hi')
-  ->header_is('X-From-Cache','1')
+  ->content_is('Should expire after 3 minutes')
+  ->header_is('X-Cache-CHI', 1)
   ;
 
-$t->get_ok('/cool')
-  ->status_is(200)
-  ->content_type_is('text/plain;charset=UTF-8')
-  ->content_is('works: cool: 1')
-  ->header_is('X-Funny','hi')
-  ->header_is('X-From-Cache','1')
-  ;
+my $c = $t->app->build_controller;
+my $diff = $c->chi('xyz')->get_expires_at('bar') - time;
+ok($diff > 0, 'key will expire in the future');
+ok($diff <= 180, 'Key will expire in <= 3 minutes');
 
-$t->get_ok('/foo')
-  ->status_is(404)
-  ->content_type_is('text/plain;charset=UTF-8')
-  ->content_is('works: not')
-  ->header_is('X-From-Cache',undef)
-  ;
-
-$t->get_ok('/foo')
-  ->status_is(404)
-  ->content_type_is('text/plain;charset=UTF-8')
-  ->content_is('works: not')
-  ->header_is('X-From-Cache',undef)
-  ;
+$diff = $c->chi('xyz')->get_expires_at('abc') - time;
+ok($diff > 0, 'key will expire in the future');
+ok($diff > 180, 'Key will expire in <= 3 hours');
+ok($diff > 2 * 60 * 60, 'Key will expire in <= 3 hours');
+ok($diff <= 3 * 60 * 60, 'Key will expire in <= 3 hours');
 
 done_testing;
