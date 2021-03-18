@@ -69,13 +69,25 @@ sub register {
           format => $found->{format},
           data => $found->{body}
         );
-        $c->res->headers->from_hash($found->{headers});
-        $c->res->headers->header('X-From-Cache' => 1);
-        return 0;
-      };
+
+        for ($c->res) {
+          $_->headers->from_hash($found->{headers});
+          $_->headers->header('X-From-Cache' => 1);
+          $_->code(200);
+        };
+
+        $c->stash->{'mojo.routed'} = 1;
+        $c->helpers->log->debug('Routing to a cache');
+
+        # Skip to final
+        $c->match->position(1000);
+      }
 
       # Render normally and then cache the route
-      $c->stash('chi.cache' => $key);
+      else {
+        $c->stash('chi.cache' => $key);
+      };
+
       return 1;
     }
   );

@@ -14,16 +14,28 @@ $app->plugin('CHI' => {
     global => 1
   }
 });
+
 $app->plugin('CHI::Route' => {
   namespace => 'xyz'
 });
+
+my $call = 1;
 
 get('/cool')->requires('chi' => { key => sub { 'abc' } })->to(
   cb => sub {
     my $c = shift;
     $c->res->headers->header('X-Funny' => 'hi');
     return $c->render(
-      text => 'works: cool',
+      text => 'works: cool: ' . $call++,
+      format => 'txt'
+    );
+  }
+);
+
+get('/cool')->to(
+  cb => sub {
+    return shift->render(
+      text => 'works: shouldn\'t',
       format => 'txt'
     );
   }
@@ -42,7 +54,7 @@ get('/foo')->requires('chi')->to(
 $t->get_ok('/cool')
   ->status_is(200)
   ->content_type_is('text/plain;charset=UTF-8')
-  ->content_is('works: cool')
+  ->content_is('works: cool: 1')
   ->header_is('X-Funny','hi')
   ->header_is('X-From-Cache', undef)
   ;
@@ -50,7 +62,7 @@ $t->get_ok('/cool')
 $t->get_ok('/cool')
   ->status_is(200)
   ->content_type_is('text/plain;charset=UTF-8')
-  ->content_is('works: cool')
+  ->content_is('works: cool: 1')
   ->header_is('X-Funny','hi')
   ->header_is('X-From-Cache','1')
   ;
@@ -58,7 +70,7 @@ $t->get_ok('/cool')
 $t->get_ok('/cool')
   ->status_is(200)
   ->content_type_is('text/plain;charset=UTF-8')
-  ->content_is('works: cool')
+  ->content_is('works: cool: 1')
   ->header_is('X-Funny','hi')
   ->header_is('X-From-Cache','1')
   ;
