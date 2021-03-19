@@ -111,6 +111,7 @@ $t->get_ok('/bar')
 $t->get_ok('/bar')
   ->status_is(200)
   ->content_type_is('text/plain;charset=UTF-8')
+  ->text_is('#error','')
   ->content_is('Should expire after 3 minutes')
   ->header_is('X-Cache-CHI', 1)
   ;
@@ -150,5 +151,38 @@ $t->get_ok('/ownkey' => { random => 'okay'})
 
 my $value = $c->chi('xyz')->get('okay')->{body};
 is($value, 'Has the name "okay"');
+
+# Check with ETag
+my $etag = $t->get_ok('/cool')
+  ->status_is(200)
+  ->content_type_is('text/plain;charset=UTF-8')
+  ->text_is('#error','')
+  ->content_is('works: cool: 1')
+  ->header_is('X-Cache-CHI', 1)
+  ->header_like('ETag',qr!^W/\"[^"]+?\"$!)
+  ->tx->res->headers->header('ETag');
+  ;
+
+$t->get_ok('/cool' => { 'If-None-Match' => $etag })
+  ->status_is(304)
+  ->content_is('')
+  ;
+
+# Check with Last-Modified
+my $lmod = $t->get_ok('/cool')
+  ->status_is(200)
+  ->content_type_is('text/plain;charset=UTF-8')
+  ->text_is('#error','')
+  ->content_is('works: cool: 1')
+  ->header_is('X-Cache-CHI', 1)
+  ->header_like('Last-Modified', qr!^.{3},!)
+  ->tx->res->headers->header('Last-Modified');
+  ;
+
+$t->get_ok('/cool' => { 'If-Modified-Since' => $lmod })
+  ->status_is(304)
+  ->content_is('')
+  ;
+
 
 done_testing;

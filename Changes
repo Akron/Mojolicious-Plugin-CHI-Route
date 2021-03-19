@@ -1,2 +1,5 @@
+0.02 2021-03-19
+        - Add ETag and Last-Modified support.
+
 0.01 2021-03-18
         - Initial commit.

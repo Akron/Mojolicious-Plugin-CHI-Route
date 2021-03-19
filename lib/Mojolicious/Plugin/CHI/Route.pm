@@ -1,7 +1,9 @@
 package Mojolicious::Plugin::CHI::Route;
 use Mojo::Base 'Mojolicious::Plugin';
+use Mojo::Util qw'md5_sum';
+use Mojo::Date;
 
-our $VERSION = "0.01";
+our $VERSION = "0.02";
 
 # Register plugin
 sub register {
@@ -57,9 +59,17 @@ sub register {
       # Get key from stash
       my $key = $c->stash('chi.r.cache');
 
-      # Delete Mojolicious server header
-      my $headers = $c->res->headers->to_hash(1);
-      $headers->{Server} = [];
+      # Set ETag and last_modified headers
+      my $last_modified = Mojo::Date->new;
+      my $headers;
+      foreach ($c->res->headers) {
+        $_->last_modified($last_modified);
+        $_->etag('W/"' . md5_sum($last_modified->to_string). '"');
+        $headers = $_->to_hash;
+
+        # Delete Mojolicious server header
+        delete $headers->{Server};
+      };
 
       # Cache
       $c->chi($namespace)->set(
@@ -105,19 +115,39 @@ sub register {
 
       # Found cache! Render
       if ($found) {
-        $c->render(
-          'format' => $found->{format},
-          'data'   => $found->{body}
-        );
-
-        for ($c->res) {
-          $_->headers->from_hash($found->{headers});
-          $_->headers->header('X-Cache-CHI' => 1);
-          $_->code(200);
-        };
 
         $c->stash->{'mojo.routed'} = 1;
-        $c->helpers->log->debug('Routing to a cache');
+
+        my $headers = $found->{headers};
+        my $etag = delete $headers->{'ETag'};
+        my $last_modified = delete $headers->{'Last-Modified'};
+
+        # Check if client side cache is still fresh
+        if ($c->is_fresh(
+          etag => $etag,
+          last_modified => $last_modified
+        )) {
+          $c->helpers->log->debug('Client side cache is still valid');
+          $c->rendered(304);
+        }
+
+        # Client has no valid copy of the cache
+        else {
+
+          $c->helpers->log->debug('Routing to a cache');
+
+          for ($c->res) {
+            $_->headers->from_hash($headers);
+            $_->headers->header('X-Cache-CHI' => 1);
+            $_->code(200);
+          };
+
+          # Render from cache
+          $c->render(
+            'format' => $found->{format},
+            'data'   => $found->{body}
+          );
+        };
 
         # Skip to final
         $c->match->position(1000);
