@@ -66,6 +66,11 @@ sub register {
       # Only cache GET requests
       return 1 if $c->req->method ne 'GET';
 
+      my $chi = $c->chi($namespace);
+
+      # No cache associated
+      return 1 unless $chi;
+
       # Get the key for the cache
       my $key;
 
@@ -80,7 +85,7 @@ sub register {
       };
 
       # Get cache based on key
-      my $found = $c->chi($namespace)->get($key);
+      my $found = $chi->get($key);
 
       # Found cache! Render
       if ($found) {
