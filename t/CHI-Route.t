@@ -28,7 +28,7 @@ get('/cool')->requires('chi' => { key => sub { 'abc' } })->to(
     $c->res->headers->header('X-Funny' => 'hi');
     return $c->render(
       text => 'works: cool: ' . $call++,
-      format => 'txt'
+      'format' => 'txt'
     );
   }
 );
@@ -37,7 +37,7 @@ get('/cool')->to(
   cb => sub {
     return shift->render(
       text => 'works: shouldn\'t',
-      format => 'txt'
+      'format' => 'txt'
     );
   }
 );
@@ -46,7 +46,7 @@ get '/foo' => ('chi' => {}) => sub {
   return shift->render(
     status => 404,
     text => 'works: not',
-    format => 'txt'
+    'format' => 'txt'
   );
 };
 
@@ -56,6 +56,7 @@ $t->get_ok('/cool')
   ->content_type_is('text/plain;charset=UTF-8')
   ->content_is('works: cool: 1')
   ->header_is('X-Funny','hi')
+  ->header_is('Server','Mojolicious (Perl)')
   ->header_is('X-Cache-CHI', undef)
   ;
 
@@ -64,6 +65,7 @@ $t->get_ok('/cool')
   ->content_type_is('text/plain;charset=UTF-8')
   ->content_is('works: cool: 1')
   ->header_is('X-Funny','hi')
+  ->header_is('Server','Mojolicious (Perl)')
   ->header_is('X-Cache-CHI','1')
   ;
 
@@ -89,12 +91,11 @@ $t->get_ok('/foo')
   ->header_is('X-Cache-CHI',undef)
   ;
 
-
 get('/bar')->requires('chi' => { key => 'bar', expires_in => '3 min'})->to(
   cb => sub {
     return shift->render(
       text => 'Should expire after 3 minutes',
-      format => 'txt'
+      'format' => 'txt'
     );
   }
 );
@@ -136,7 +137,7 @@ get('/ownkey')->requires('chi' => {
     my $random = $c->req->headers->header('random') // '111';
     return $c->render(
       text => 'Has the name "'.$random.'"',
-      format => 'txt'
+      'format' => 'txt'
     );
   }
 );

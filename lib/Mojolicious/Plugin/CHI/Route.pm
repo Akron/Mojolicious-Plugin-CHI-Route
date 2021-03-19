@@ -57,12 +57,16 @@ sub register {
       # Get key from stash
       my $key = $c->stash('chi.r.cache');
 
+      # Delete Mojolicious server header
+      my $headers = $c->res->headers->to_hash(1);
+      $headers->{Server} = [];
+
       # Cache
       $c->chi($namespace)->set(
         $key => {
-          body    => $$output,
-          format  => $format,
-          headers => $c->res->headers->to_hash(1)
+          'body'    => $$output,
+          'format'  => $format,
+          'headers' => $headers
         } => {
           expires_in => $c->stash('chi.r.expires') // $expires_in
         }
@@ -102,8 +106,8 @@ sub register {
       # Found cache! Render
       if ($found) {
         $c->render(
-          format => $found->{format},
-          data => $found->{body}
+          'format' => $found->{format},
+          'data'   => $found->{body}
         );
 
         for ($c->res) {
