@@ -22,6 +22,18 @@ sub register {
 
   # set namespace
   my $namespace = $param->{namespace}   // 'default';
+
+  unless ($app->chi($namespace)) {
+    $app->log->error("No cache defined for '$namespace'");
+
+    # Add condition to check for cache
+    $app->routes->add_condition(
+      chi => sub { 1 }
+    );
+
+    return;
+  }
+
   my $expires_in = $param->{expires_in} // '6 hour';
 
   # Set default key

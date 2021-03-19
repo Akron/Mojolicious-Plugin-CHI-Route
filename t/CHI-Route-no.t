@@ -10,7 +10,9 @@ my $app = $t->app;
 
 $app->plugin('CHI');
 
-$app->plugin('CHI::Route');
+$app->plugin('CHI::Route' => {
+  namespace => 'xyz'
+});
 
 my $call = 1;
 
