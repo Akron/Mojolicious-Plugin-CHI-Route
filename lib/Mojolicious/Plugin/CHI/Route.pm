@@ -256,6 +256,8 @@ The caching works by adding a condition to the route,
 that will either render from cache or cache a dynamic rendering.
 The condition will always succeed.
 Only successfull C<GET> requests will be cached.
+C<ETag> and C<Last-Modified> headers will be set and recognized
+on further requests by the same client.
 
 =over 2
 
