@@ -49,6 +49,13 @@ The registration accepts the following parameters:
 The default key callback for all routes.
 Defaults to the absolute URL of the request.
 
+=item expires_in
+
+The default lifetime of route cache entries.
+Can be either a number of seconds or a
+L<duration expression|CHI/DURATION EXPRESSIONS>.
+Defaults to C<6 hours>.
+
 =item namespace
 
 Define the L<CHI> namespace for the cached renderings.
@@ -57,13 +64,6 @@ It is beneficial to use a separate namespace to easily
 L<purge|Mojolicious::Plugin::CHI/chi purge> or
 L<clear|Mojolicious::Plugin::CHI/chi clear>
 just the route cache on updates.
-
-=item expires_in
-
-The default lifetime of route cache entries.
-Can be either a number of seconds or a
-L<duration expression|CHI/DURATION EXPRESSIONS>.
-Defaults to C<6 hours>.
 
 =back
 
@@ -80,6 +80,8 @@ The caching works by adding a condition to the route,
 that will either render from cache or cache a dynamic rendering.
 The condition will always succeed.
 Only successfull C<GET> requests will be cached.
+C<ETag> and C<Last-Modified> headers will be set and recognized
+on further requests by the same client.
 
 =over 2
 
@@ -103,7 +105,13 @@ This overrides the default C<expires_in> configuration value.
 
 =head1 TROUBLESHOOTING
 
-The cached results will contain a C<X-Cache-CHI> header.
+The cached results will contain an C<X-Cache-CHI> header.
+This is experimental and may change in the future.
+
+=head1 CAVEAT
+
+Note that the defined cache key must be chosen wisely
+to avoid cache poisoning.
 
 =head1 AVAILABILITY
 
