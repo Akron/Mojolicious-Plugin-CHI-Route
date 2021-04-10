@@ -268,14 +268,10 @@ file with the key C<CHI-Route> or on registration
 
   get('/example')->requires(
     chi => {
-      key => sub {
-        return shift->req->headers->header('random') // '000'
-      },
+      key => 'example',
       expires_in => '3 min'
     }
-  )->to(
-    ...
-  )
+  )->to( ... );
 
 The caching works by adding a condition to the route,
 that will either render from cache or cache a dynamic rendering.
@@ -291,9 +287,14 @@ on further requests by the same client.
 The key for the cache.
 Accepts either a callback to dynamically define the key or
 a string (e.g. for non-dynamic routes without placeholders).
+In case of a callback, the first parameter passed is the controller object.
+Be aware that the state of the controller may not be finished yet and
+not all stash values may be accessible at this point!
+Returning C<undef> won't cache the route.
 This overrides the default C<key> configuration value.
 
-In case the key is found in the cache, the cache content will be returned.
+In case the defined key is found in the cache, the cache
+content will be returned.
 
 =item expires_in
 

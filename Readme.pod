@@ -38,6 +38,18 @@ by using L<Mojolicious::Plugin::CHI>.
 
 =head2 register
 
+  plugin CHI => {
+    routes => {
+      driver => 'Memory',
+      global => 1
+    }
+  };
+
+  plugin 'CHI::Route' => {
+    namespace => 'routes',
+    expires_in => '4 hours'
+  };
+
 Called when registering the plugin.
 
 The registration accepts the following parameters:
@@ -76,6 +88,13 @@ file with the key C<CHI-Route> or on registration
 
 =head2 chi
 
+  get('/example')->requires(
+    chi => {
+      key => 'example',
+      expires_in => '3 min'
+    }
+  )->to( ... );
+
 The caching works by adding a condition to the route,
 that will either render from cache or cache a dynamic rendering.
 The condition will always succeed.
@@ -90,9 +109,14 @@ on further requests by the same client.
 The key for the cache.
 Accepts either a callback to dynamically define the key or
 a string (e.g. for non-dynamic routes without placeholders).
+In case of a callback, the first parameter passed is the controller object.
+Be aware that the state of the controller may not be finished yet and
+not all stash values may be accessible at this point!
+Returning C<undef> won't cache the route.
 This overrides the default C<key> configuration value.
 
-In case the key is found in the cache, the cache content will be returned.
+In case the defined key is found in the cache, the cache
+content will be returned.
 
 =item expires_in
 
