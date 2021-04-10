@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::Util qw'md5_sum';
 use Mojo::Date;
 
-our $VERSION = "0.02";
+our $VERSION = '0.02';
 
 # Register plugin
 sub register {
@@ -23,7 +23,7 @@ sub register {
   };
 
   # set namespace
-  my $namespace = $param->{namespace}   // 'default';
+  my $namespace = $param->{namespace} // 'default';
 
   unless ($app->chi($namespace)) {
     $app->log->error("No cache defined for '$namespace'");
@@ -34,9 +34,9 @@ sub register {
     );
 
     return;
-  }
+  };
 
-  my $expires_in = $param->{expires_in} // '6 hour';
+  my $expires_in = $param->{expires_in} // '6 hours';
 
   # Set default key
   my $default_key = $param->{key} // sub {
@@ -127,14 +127,14 @@ sub register {
           etag => $etag,
           last_modified => $last_modified
         )) {
-          $c->helpers->log->debug('Client side cache is still valid');
+          $c->log->debug('Client side cache is still valid');
           $c->rendered(304);
         }
 
         # Client has no valid copy of the cache
         else {
 
-          $c->helpers->log->debug('Routing to a cache');
+          $c->log->debug('Routing to a cache');
 
           for ($c->res) {
             $_->headers->from_hash($headers);
@@ -170,6 +170,7 @@ sub register {
 
 
 1;
+
 
 __END__
 
@@ -224,6 +225,13 @@ The registration accepts the following parameters:
 The default key callback for all routes.
 Defaults to the absolute URL of the request.
 
+=item expires_in
+
+The default lifetime of route cache entries.
+Can be either a number of seconds or a
+L<duration expression|CHI/DURATION EXPRESSIONS>.
+Defaults to C<6 hours>.
+
 =item namespace
 
 Define the L<CHI> namespace for the cached renderings.
@@ -232,13 +240,6 @@ It is beneficial to use a separate namespace to easily
 L<purge|Mojolicious::Plugin::CHI/chi purge> or
 L<clear|Mojolicious::Plugin::CHI/chi clear>
 just the route cache on updates.
-
-=item expires_in
-
-The default lifetime of route cache entries.
-Can be either a number of seconds or a
-L<duration expression|CHI/DURATION EXPRESSIONS>.
-Defaults to C<6 hours>.
 
 =back
 
@@ -278,7 +279,13 @@ This overrides the default C<expires_in> configuration value.
 
 =head1 TROUBLESHOOTING
 
-The cached results will contain a C<X-Cache-CHI> header.
+The cached results will contain an C<X-Cache-CHI> header.
+This is experimental and may change in the future.
+
+=head1 CAVEAT
+
+Note that the defined cache key must be chosen wisely
+to avoid cache poisoning.
 
 =head1 AVAILABILITY
 
