@@ -184,5 +184,28 @@ $t->get_ok('/cool' => { 'If-Modified-Since' => $lmod })
   ->content_is('')
   ;
 
+get('/ignore')->requires('chi' => {
+  key => sub {
+    return '' #undef
+  }
+})->to(
+  cb => sub {
+    my $c = shift;
+    return $c->render(
+      text => 'hui',
+      'format' => 'txt'
+    );
+  }
+);
+
+$t->get_ok('/ignore')
+  ->content_is('hui')
+  ->header_exists_not('X-Cache-CHI')
+  ;
+
+$t->get_ok('/ignore')
+  ->content_is('hui')
+  ->header_exists_not('X-Cache-CHI')
+  ;
 
 done_testing;

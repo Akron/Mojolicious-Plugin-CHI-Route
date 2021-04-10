@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::Util qw'md5_sum';
 use Mojo::Date;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 # Register plugin
 sub register {
@@ -110,6 +110,8 @@ sub register {
         $key = $default_key->($c);
       };
 
+      return 1 unless $key;
+
       # Get cache based on key
       my $found = $chi->get($key);
 
@@ -214,6 +216,18 @@ by using L<Mojolicious::Plugin::CHI>.
 
 =head2 register
 
+  plugin CHI => {
+    routes => {
+      driver => 'Memory',
+      global => 1
+    }
+  };
+
+  plugin 'CHI::Route' => {
+    namespace => 'routes',
+    expires_in => '4 hours'
+  };
+
 Called when registering the plugin.
 
 The registration accepts the following parameters:
@@ -251,6 +265,17 @@ file with the key C<CHI-Route> or on registration
 =head1 CONDITIONS
 
 =head2 chi
+
+  get('/example')->requires(
+    chi => {
+      key => sub {
+        return shift->req->headers->header('random') // '000'
+      },
+      expires_in => '3 min'
+    }
+  )->to(
+    ...
+  )
 
 The caching works by adding a condition to the route,
 that will either render from cache or cache a dynamic rendering.
