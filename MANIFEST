@@ -1,0 +1,7 @@
+lib/Mojolicious/Plugin/CHI/Route.pm
+t/CHI-Route.t
+t/CHI-Route-no.t
+Changes
+MANIFEST
+LICENSE
+Makefile.PL

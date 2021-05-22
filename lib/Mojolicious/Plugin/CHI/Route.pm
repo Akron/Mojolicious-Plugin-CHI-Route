@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::Util qw'md5_sum';
 use Mojo::Date;
 
-our $VERSION = '0.03';
+our $VERSION = '0.05';
 
 # Register plugin
 sub register {

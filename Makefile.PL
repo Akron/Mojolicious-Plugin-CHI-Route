@@ -13,6 +13,7 @@ WriteMakefile(
     'Test::More' => 0
   },
   PREREQ_PM => {
+    'Mojolicious' => 8.67,
     'Mojolicious::Plugin::CHI' => 0.20,
     'Time::Duration::Parse' => 0
   },
